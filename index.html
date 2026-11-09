@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Votación Escolar · Inicio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Exo+2:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="loader"><div style="text-align:center"><div class="spin"></div></div></div>
+<header>
+  <div class="brand"><div id="brandArt"></div><div><h1 id="hTitle">Elecciones Escolares</h1><p id="hSchool"></p></div></div>
+  <div class="chips"><span class="chip" id="modeChip"><span class="dot warn"></span><span>Conectando</span></span><span id="clock"></span></div>
+</header>
+<main>
+  <div class="split" style="min-height:auto">
+    <div>
+      <div class="ins-big"></div>
+        <div class="kicker">Sistema de votación electrónica escolar</div>
+      <h2 class="big"><span class="grad">Elegimos juntos</span><br>nuestro municipio escolar</h2>
+      <p class="sub">Cada mesa tiene una <b>tablet</b> donde votan los estudiantes de su grupo y una <b>computadora de conteo</b> con cuadros estadísticos. Todas envían su reporte a la <b>computadora central</b>.</p>
+      <div class="flow"><span>Tablet de la mesa</span>→<span>Conteo de la mesa</span>→<span>Central</span></div>
+    </div>
+    <div id="hero"></div>
+  </div>
+  <div class="banner warn" id="demoBanner" style="display:none;margin-top:22px">Modo demo · PIN de mesas: 1111, 2222, 3333, 4444, 5555 · Estudiantes: Mesa 1 → 1001 a 1008, Mesa 2 → 2001 a 2008, y así sucesivamente · Código de la central: DEMO2026</div>
+
+  <div class="portal-sec"><h3 id="ic1"></h3><div class="portal" id="pTablets"></div></div>
+  <div class="portal-sec"><h3 id="ic2"></h3><div class="portal" id="pConteo"></div></div>
+  <div class="portal-sec"><a class="glass pcard central" href="central.html"><span id="icC"></span><div><h4>Computadora central</h4><p>Recibe los reportes de las 5 mesas: total general, gráficos, quién votó y quién falta, y el padrón. Acceso con código secreto.</p></div></a></div>
+</main>
+<div class="toast" id="toast"></div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+(async () => {
+  $('#hero').innerHTML = ART.urna;
+  $('#ic1').innerHTML = '<span style="width:30px;display:inline-block">' + ART.tablet + '</span> Tablets de votación (estudiantes)';
+  $('#ic2').innerHTML = '<span style="width:30px;display:inline-block">' + ART.monitor + '</span> Computadoras de conteo (responsables de mesa)';
+  $('#icC').innerHTML = ART.central;
+  await loadConfig();
+  if (!API) $('#demoBanner').style.display = 'block';
+  let t = '', c = '';
+  for (let m = 1; m <= CFG.numMesas; m++){
+    t += `<a class="glass pcard" href="mesa${m}.html"><div class="n">0${m}</div><h4>Tablet Mesa ${m}</h4><p>Solo votan los estudiantes de la Mesa ${m}.</p></a>`;
+    c += `<a class="glass pcard" href="conteo${m}.html"><div class="n" style="color:var(--deep)">0${m}</div><h4>Conteo Mesa ${m}</h4><p>Gráficos en vivo y envío del reporte.</p></a>`;
+  }
+  $('#pTablets').innerHTML = t; $('#pConteo').innerHTML = c;
+  hideLoader();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central de Cómputo · Votación Escolar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Exo+2:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="loader"><div style="text-align:center"><div class="spin"></div><div style="font-family:Orbitron;font-size:12px;color:var(--mute);letter-spacing:.3em">INICIANDO CENTRAL</div></div></div>
+<header>
+  <div class="brand"><div id="brandArt"></div><div><h1 id="hTitle">Elecciones Escolares</h1><p id="hSchool"></p></div></div>
+  <div class="chips">
+    <span class="chip mesa">Central de cómputo</span>
+    <span class="chip" id="modeChip"><span class="dot warn"></span><span>Conectando</span></span>
+    <span id="clock"></span>
+  </div>
+</header>
+<main>
+  <section class="screen on" id="s-login">
+    <div class="split">
+      <div>
+        <div class="ins-big"></div>
+        <div class="kicker">Acceso restringido · Comité electoral</div>
+        <h2 class="big"><span class="grad">Central de cómputo</span><br>de las 5 mesas</h2>
+        <p class="sub">Aquí llegan los reportes de las 5 mesas y se ve el total general con cuadros estadísticos, quién votó y quién falta, y el padrón de cada grupo. Solo se entra con el código secreto.</p>
+        <div id="artCen" style="max-width:200px;margin-top:22px"></div>
+      </div>
+      <form class="glass card" id="loginForm" autocomplete="off" style="background:#fff">
+        <div class="banner warn" id="demoBanner" style="display:none">Modo demo · código secreto: <b class="mono">DEMO2026</b></div>
+        <label class="field-label" for="secret">Código secreto</label>
+        <input class="code-input sm" id="secret" type="password" maxlength="60" placeholder="••••••••">
+        <button class="btn btn-primary" id="btnLogin" type="submit">Entrar ›</button>
+        <div class="msg" id="loginMsg"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="screen" id="s-central">
+    <div class="head-row">
+      <div><div class="kicker">Comité electoral</div><h2 class="mid">Cómputo general</h2><p class="small" id="upd"></p></div>
+      <div class="acts">
+        <button class="btn btn-ghost" id="btnRefresh">Actualizar</button>
+        <button class="btn btn-ghost" id="btnCopy">Copiar acta general</button>
+        <button class="btn btn-ghost" id="btnExit">Salir</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" data-tab="res">Resultados generales</button>
+      <button class="tab" data-tab="rep">Reportes de mesas</button>
+      <button class="tab" data-tab="vot">Votantes</button>
+      <button class="tab" data-tab="pad">Padrón por mesa</button>
+      <button class="tab" data-tab="cfg">Candidatos y configuración</button>
+    </div>
+
+    <div class="pane on" id="p-res">
+      <div class="kpis" id="kpis"></div>
+      <div class="glass winner" id="winner"></div>
+      <div class="glass progress"><div class="kicker">Participación general</div><div class="small" id="progTxt" style="margin-top:8px"></div><div class="track"><div class="fill" id="progFill" style="width:0"></div></div></div>
+      <div class="charts">
+        <div class="glass chartcard"><h5>Distribución total de votos</h5><div class="note">Las 5 mesas sumadas</div><div class="chartbox"><canvas id="chDonut"></canvas></div></div>
+        <div class="glass chartcard"><h5>Participación por mesa</h5><div class="note">Porcentaje de estudiantes de cada mesa que ya votó</div><div class="chartbox"><canvas id="chPart"></canvas></div></div>
+        <div class="glass chartcard wide"><h5>Votos por mesa</h5><div class="note">Cada barra es una mesa, dividida por tipo de voto</div><div class="chartbox"><canvas id="chMesas"></canvas></div></div>
+        <div class="glass chartcard wide"><h5>Estudiantes que votaron por hora</h5><div class="note">Todas las mesas</div><div class="chartbox" style="height:240px"><canvas id="chHoras"></canvas></div></div>
+      </div>
+      <div class="glass tablewrap"><table id="mesaTable"></table></div>
+    </div>
+
+    <div class="pane" id="p-rep">
+      <p class="small" style="margin-bottom:14px">Cada computadora de conteo envía su reporte al cerrar la mesa. Verde: reporte al día. Ámbar: llegaron votos después del último reporte. Gris: aún no envía.</p>
+      <div class="reports" id="reports"></div>
+      <div class="glass tablewrap"><table id="repTable"></table></div>
+    </div>
+
+    <div class="pane" id="p-vot">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <label class="small" for="votFilter">Mostrar:</label>
+        <select class="sel" id="votFilter"></select>
+      </div>
+      <div class="lists">
+        <div class="glass list" style="--sc:var(--ok)"><h5><span>Ya votaron</span><span id="nVot">0</span></h5><ol id="listVot"></ol></div>
+        <div class="glass list" style="--sc:var(--null)"><h5><span>Faltan votar</span><span id="nFal">0</span></h5><ol id="listFal"></ol></div>
+      </div>
+      <p class="small" style="margin-top:14px">Por voto secreto, aquí solo se ve <b>quién</b> votó y en qué mesa, nunca por quién votó.</p>
+    </div>
+
+    <div class="pane" id="p-pad">
+      <div class="mesagrid" id="padGrid" style="margin-bottom:16px"></div>
+      <div class="glass form">
+        <div>
+          <div class="kicker">Agregar estudiantes al padrón</div>
+          <p class="small" style="margin-top:8px">Escribe o pega <b>un nombre por línea</b> (puedes copiar la columna de nombres desde Excel). El sistema <b>asigna automáticamente un código único</b> a cada estudiante. Si quieres elegir la mesa de alguno, escribe <span class="mono">nombre, mesa</span> (por ejemplo <span class="mono">Ana Torres, 3</span>).</p>
+        </div>
+        <textarea class="in" id="padText" placeholder="Ana Torres&#10;Luis Ramos&#10;Rosa Díaz, 2"></textarea>
+        <div class="grid2">
+          <div><label class="field-label" for="padMesa">¿Cómo repartir a los estudiantes en las mesas?</label>
+            <select class="sel" id="padMesa" style="width:100%"></select></div>
+          <div style="display:flex;align-items:flex-end"><label class="small" style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="padReplace" style="width:18px;height:18px"> Borrar el padrón actual y empezar de nuevo</label></div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" style="width:auto;margin:0" id="btnPad">Asignar códigos y guardar</button>
+          <label class="btn btn-ghost" style="cursor:pointer">Importar archivo CSV (Supabase / Excel)<input type="file" id="padCsv" accept=".csv,text/csv" style="display:none"></label>
+          <span class="small" id="padInfo"></span>
+        </div>
+      </div>
+      <div class="glass form" style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+          <div class="kicker">Padrón: estudiantes y sus códigos</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <select class="sel" id="padFilter"></select>
+            <button class="btn btn-ghost" id="btnPadCopy">Copiar lista (Excel)</button>
+            <button class="btn btn-ghost" id="btnPadPrintList">Imprimir padrón</button>
+            <button class="btn btn-ghost" id="btnPadXls">Descargar Excel</button>
+            <button class="btn btn-ghost" id="btnPadPrint">Imprimir tarjetas</button>
+          </div>
+        </div>
+        <div class="tablewrap" style="margin:0;box-shadow:none;border:1px solid var(--line);max-height:520px;overflow:auto"><table id="padTable" style="min-width:560px"></table></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-cfg">
+      <div class="glass form">
+        <div><div class="kicker">Elección</div><p class="small" style="margin-top:8px">Sube la foto y el logo de cada candidato (JPG o PNG; se ajustan solos de tamaño) y toca <b>Guardar cambios</b>. Los cambios llegan a las tablets y a las computadoras de conteo en unos segundos (las tablets los toman al volver a la pantalla de inicio).</p></div>
+        <div class="grid2"><div><label class="field-label" for="cfTitulo">Título de la elección</label><input class="in" id="cfTitulo" maxlength="120"></div>
+        <div><label class="field-label" for="cfColegio">Institución educativa</label><input class="in" id="cfColegio" maxlength="120"></div></div>
+        <div class="grid2">
+          <div class="candcfg" style="--cc:var(--c1)"><div class="kicker" style="color:var(--c1)">Candidato 01</div>
+            <label class="field-label" for="cfN1">Nombre del candidato</label><input class="in" id="cfN1" maxlength="120">
+            <label class="field-label" for="cfL1">Lista o partido</label><input class="in" id="cfL1" maxlength="120">
+            <div class="imgslots">
+              <div class="imgslot"><div class="t">Foto del candidato</div><div class="pv" id="pv_c1_foto"></div><div class="bt"><label>Subir<input type="file" accept="image/*" data-slot="c1_foto"></label><button type="button" data-quitar-img="c1_foto">Quitar</button></div></div>
+              <div class="imgslot"><div class="t">Logo de la lista</div><div class="pv" id="pv_c1_logo"></div><div class="bt"><label>Subir<input type="file" accept="image/*" data-slot="c1_logo"></label><button type="button" data-quitar-img="c1_logo">Quitar</button></div></div>
+            </div></div>
+          <div class="candcfg" style="--cc:var(--c2)"><div class="kicker" style="color:var(--c2)">Candidato 02</div>
+            <label class="field-label" for="cfN2">Nombre del candidato</label><input class="in" id="cfN2" maxlength="120">
+            <label class="field-label" for="cfL2">Lista o partido</label><input class="in" id="cfL2" maxlength="120">
+            <div class="imgslots">
+              <div class="imgslot"><div class="t">Foto del candidato</div><div class="pv" id="pv_c2_foto"></div><div class="bt"><label>Subir<input type="file" accept="image/*" data-slot="c2_foto"></label><button type="button" data-quitar-img="c2_foto">Quitar</button></div></div>
+              <div class="imgslot"><div class="t">Logo de la lista</div><div class="pv" id="pv_c2_logo"></div><div class="bt"><label>Subir<input type="file" accept="image/*" data-slot="c2_logo"></label><button type="button" data-quitar-img="c2_logo">Quitar</button></div></div>
+            </div></div>
+        </div>
+        <div class="toggle" id="cfAbierta" role="switch" tabindex="0"><div class="sw"></div><span id="cfAbiertaTxt">Votación abierta</span></div>
+        <div><button class="btn btn-primary" style="width:auto;margin:0" id="btnCfg">Guardar cambios</button></div>
+      </div>
+      <div class="glass form" style="margin-top:16px">
+        <div><div class="kicker">Códigos de acceso de las mesas</div>
+          <p class="small" style="margin-top:8px">Cada mesa tiene dos códigos: el <b>PIN de la tablet</b> (para activarla y votar) y el <b>PIN de conteo</b> (para la computadora que ve los resultados y envía el reporte). De 4 a 12 letras o números. Si cambias un PIN, ese equipo pedirá el nuevo código.</p></div>
+        <div class="tablewrap" style="margin:0;box-shadow:none;border:1px solid var(--line)"><table class="pins"><thead><tr><th>Mesa</th><th>PIN de la tablet</th><th>PIN de conteo</th></tr></thead><tbody id="pinRows"></tbody></table></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" style="width:auto;margin:0" id="btnPins">Guardar códigos</button>
+          <button class="btn btn-ghost" id="btnPinsGen">Generar códigos al azar</button>
+          <span class="small">Anota los códigos y entrégalos a cada responsable de mesa.</span>
+        </div>
+      </div>
+      <div class="glass form danger" style="margin-top:16px">
+        <div><div class="kicker" style="color:var(--bad)">Borrar datos de prueba</div>
+          <p class="small" style="margin-top:8px">Borra <b>todos los votos</b>, la lista de <b>estudiantes que votaron</b> y los <b>reportes de las mesas</b>. Úsalo después de las pruebas o del simulacro, <b>antes</b> del día de la elección. Los candidatos, los PIN y la configuración se conservan.</p></div>
+        <label class="small" style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="rstPadron" style="width:18px;height:18px"> También borrar el padrón (todos los estudiantes y sus códigos)</label>
+        <div><button class="btn btn-danger" id="btnReset">Borrar datos de prueba…</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+<a class="back" href="index.html">‹ Inicio</a>
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+<div class="modal" id="mReset"><div class="glass box">
+  <h4 style="color:var(--bad)">¿Borrar los datos de prueba?</h4>
+  <p id="rstText"></p>
+  <input class="code-input sm" id="rstIn" placeholder="BORRAR" style="margin-bottom:12px">
+  <div class="msg err" id="rstMsg" style="margin:0 0 12px"></div>
+  <div class="row"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-danger" id="btnResetGo">Sí, borrar</button></div>
+</div></div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="central.js"></script>
+</body>
+</html>

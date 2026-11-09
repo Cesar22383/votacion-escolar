@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conteo Mesa 1 · Votación Escolar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Exo+2:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="loader"><div style="text-align:center"><div class="spin"></div></div></div>
+<header>
+  <div class="brand"><div id="brandArt"></div><div><h1 id="hTitle">Elecciones Escolares</h1><p id="hSchool"></p></div></div>
+  <div class="chips">
+    <span class="chip mesa">Conteo · Mesa 1</span>
+    <span class="chip" id="modeChip"><span class="dot warn"></span><span>Conectando</span></span>
+    <span id="clock"></span>
+  </div>
+</header>
+<main>
+  <section class="screen on" id="s-login">
+    <div class="split">
+      <div>
+        <div class="ins-big"></div>
+        <div class="kicker">Computadora de conteo</div>
+        <h2 class="big"><span class="grad">Conteo de la</span><br>Mesa N° 1</h2>
+        <p class="sub">Aquí el responsable revisa en vivo los votos de su mesa con cuadros estadísticos y, al cerrar, envía el reporte a la computadora central.</p>
+        <div id="artMon" style="max-width:220px;margin-top:22px"></div>
+      </div>
+      <form class="glass card" id="loginForm" autocomplete="off" style="background:#fff">
+        <div class="banner warn" id="demoBanner" style="display:none">Modo demo · PIN de esta mesa: <b class="mono">1111</b></div>
+        <label class="field-label" for="pin">PIN de la Mesa 1</label>
+        <input class="code-input sm" id="pin" type="password" maxlength="20" placeholder="••••">
+        <button class="btn btn-primary" id="btnLogin" type="submit">Ver conteo ›</button>
+        <div class="msg" id="loginMsg"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="screen" id="s-dash">
+    <div class="head-row">
+      <div><div class="kicker">Mesa N° 1 · conteo en vivo</div><h2 class="mid">Resultados de la mesa</h2><p class="small" id="upd"></p></div>
+      <div class="acts">
+        <button class="btn btn-ghost" id="btnRefresh">Actualizar</button>
+        <button class="btn btn-ghost" id="btnCopy">Copiar acta</button>
+        <button class="btn btn-send" id="btnSend">Enviar reporte a la central ›</button>
+        <button class="btn btn-ghost" id="btnExit">Salir</button>
+      </div>
+    </div>
+    <div class="glass form entrega" id="entregaSec">
+      <div class="kicker">Entregar código al estudiante</div>
+      <p class="small" style="margin:6px 0 12px">El estudiante dice su DNI, el miembro de mesa lo escribe aquí, verifica nombre, grado y sección, y le entrega su código.</p>
+      <form id="entregaForm" autocomplete="off" style="display:flex;gap:10px;flex-wrap:wrap">
+        <input class="code-input sm" id="dniIn" inputmode="numeric" maxlength="12" placeholder="DNI del estudiante" style="flex:1;min-width:220px;margin:0">
+        <button class="btn btn-primary" type="submit" style="width:auto;margin:0">Buscar ›</button>
+      </form>
+      <div id="entregaRes"></div>
+    </div>
+    <div class="banner warn" id="repState" style="background:#fff;border-color:var(--line);color:var(--deep)"></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="glass winner" id="winner"></div>
+    <div class="glass progress"><div class="kicker">Avance de la mesa</div><div class="small" id="progTxt" style="margin-top:8px"></div><div class="track"><div class="fill" id="progFill" style="width:0"></div></div></div>
+    <div class="charts">
+      <div class="glass chartcard"><h5>Distribución de los votos</h5><div class="note">Porcentaje de cada opción sobre el total emitido</div><div class="chartbox"><canvas id="chDonut"></canvas></div></div>
+      <div class="glass chartcard"><h5>Votos por opción</h5><div class="note">Cantidad de votos de cada tipo</div><div class="chartbox"><canvas id="chBar"></canvas></div></div>
+      <div class="glass chartcard wide"><h5>Estudiantes que votaron por hora</h5><div class="note">Cómo avanzó la votación en esta mesa</div><div class="chartbox" style="height:240px"><canvas id="chHoras"></canvas></div></div>
+    </div>
+    <div class="glass tablewrap"><table id="tabla"></table></div>
+
+    <div class="glass form" style="margin-top:16px" id="padSec">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+        <div><div class="kicker">Padrón de la Mesa 1</div><div class="small" id="padResumen" style="margin-top:6px"></div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input class="in" id="padBuscar" placeholder="Buscar por nombre, DNI o código" style="margin:0;width:260px">
+          <button class="btn btn-ghost" id="btnPadPrint">Imprimir padrón</button>
+          <button class="btn btn-ghost" id="btnPadXls">Descargar Excel</button>
+        </div>
+      </div>
+      <div class="tablewrap" style="margin:0;box-shadow:none;border:1px solid var(--line);max-height:560px;overflow:auto"><table id="padTable" style="min-width:640px"></table></div>
+    </div>
+  </section>
+</main>
+<div class="modal" id="mSend"><div class="glass box">
+  <h4>¿Enviar reporte a la central?</h4><p id="sendText"></p>
+  <div class="row"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="btnSendGo">Sí, enviar</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>window.MESA = 1;</script>
+<script src="conteo.js"></script>
+</body>
+</html>

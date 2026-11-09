@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablet Mesa 4 · Votación Escolar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Exo+2:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="loader"><div style="text-align:center"><div class="spin"></div><div style="font-family:Orbitron;font-size:12px;color:var(--mute);letter-spacing:.3em">INICIANDO MESA 4</div></div></div>
+<header>
+  <div class="brand"><div id="brandArt"></div><div><h1 id="hTitle">Elecciones Escolares</h1><p id="hSchool"></p></div></div>
+  <div class="chips">
+    <span class="chip mesa">Tablet · Mesa 4</span>
+    <span class="chip" id="modeChip"><span class="dot warn"></span><span>Conectando</span></span>
+    <span id="clock"></span>
+  </div>
+</header>
+<main>
+  <section class="screen" id="s-setup">
+    <div class="split">
+      <div>
+        <div class="ins-big"></div>
+        <div class="kicker">Activación del equipo</div>
+        <h2 class="big"><span class="grad">Mesa de votación</span><br>N° 4</h2>
+        <p class="sub">El responsable de la Mesa 4 escribe su PIN para abrir la votación en esta tablet. Solo podrán votar aquí los estudiantes asignados a la Mesa 4.</p>
+        <div class="art"></div>
+      </div>
+      <form class="glass card" id="setupForm" autocomplete="off">
+        <div class="banner warn" id="demoBanner" style="display:none">Modo demo · PIN de esta mesa: <b class="mono">4444</b> · Estudiantes de esta mesa: <b class="mono">4001</b> a <b class="mono">4008</b></div>
+        <label class="field-label" for="mesaPin">PIN de la Mesa 4</label>
+        <input class="code-input sm" id="mesaPin" type="password" maxlength="20" placeholder="••••">
+        <button class="btn btn-primary" id="btnSetup" type="submit">Activar mesa ›</button>
+        <div class="msg" id="setupMsg"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="screen" id="s-access">
+    <div class="split">
+      <div>
+        <div class="ins-big"></div>
+        <div class="kicker">Mesa de votación N° 4</div>
+        <h2 class="big"><span class="grad">Tu voz decide</span><br>el futuro del colegio</h2>
+        <p class="sub">Ingresa tu código de estudiante. Solo pueden votar en esta mesa los estudiantes de la Mesa 4. Cada código vota una sola vez y tu voto es secreto.</p>
+        <div class="steps">
+          <div class="step"><b>01</b><span>Escribe tu código y presiona <strong>Ingresar</strong>.</span></div>
+          <div class="step"><b>02</b><span>Marca a tu candidato. Si no marcas a nadie es voto en blanco; si marcas a los dos, el voto es viciado.</span></div>
+          <div class="step"><b>03</b><span>Confirma y emite tu voto.</span></div>
+        </div>
+        <div class="art"></div>
+      </div>
+      <form class="glass card" id="accessForm" autocomplete="off">
+        <div class="banner warn" id="closedBanner" style="display:none">La votación está cerrada en este momento.</div>
+        <label class="field-label" for="code">Código de estudiante</label>
+        <input class="code-input" id="code" maxlength="30" placeholder="EJ: 4001">
+        <button class="btn btn-primary" id="btnEnter" type="submit">Ingresar ›</button>
+        <div class="msg" id="accessMsg"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="screen" id="s-ballot">
+    <div class="ballot-head">
+      <div><div class="kicker">Cédula de votación · Mesa 4</div><h2 class="mid">Marca tu preferencia</h2><p class="sub">Toca la tarjeta del candidato para marcar o desmarcar.</p></div>
+      <div class="voter">Votante: <strong id="voterCode">—</strong><span id="voterName"></span></div>
+    </div>
+    <div class="cands">
+      <button class="glass cand n1" id="cand1" type="button">
+        <div class="cand-top"><span class="cand-num">CANDIDATO 01</span><div class="markbox"><svg viewBox="0 0 52 52"><path d="M10 10 L42 42 M42 10 L10 42" stroke="var(--c1)" stroke-width="8" stroke-linecap="round"/></svg></div></div>
+        <div class="emblem" id="em1">C1</div><img class="clogo" id="lg1" alt="Logo de la lista 1"><h3 id="name1">Candidato 1</h3><p id="slog1"></p><div class="hint-tap">Toca para marcar</div>
+      </button>
+      <button class="glass cand n2" id="cand2" type="button">
+        <div class="cand-top"><span class="cand-num">CANDIDATO 02</span><div class="markbox"><svg viewBox="0 0 52 52"><path d="M10 10 L42 42 M42 10 L10 42" stroke="var(--c2)" stroke-width="8" stroke-linecap="round"/></svg></div></div>
+        <div class="emblem" id="em2">C2</div><img class="clogo" id="lg2" alt="Logo de la lista 2"><h3 id="name2">Candidato 2</h3><p id="slog2"></p><div class="hint-tap">Toca para marcar</div>
+      </button>
+    </div>
+    <div class="glass verdict">
+      <div><div class="lbl">Tu voto se registrará como</div><div class="val" id="verdict">Voto en blanco</div></div>
+      <div class="actions"><button class="btn btn-ghost" id="btnCancel" type="button">Cancelar</button><button class="btn btn-primary" id="btnVote" type="button">Emitir voto</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-thanks">
+    <div class="thanks"><div>
+      <div id="celebra"></div>
+      <div class="kicker" style="color:var(--ok)">Voto registrado</div>
+      <h2 class="big">¡Gracias por votar!</h2>
+      <p class="sub" style="margin:0 auto">Tu participación fortalece la democracia escolar.</p>
+      <div class="receipt" id="receipt"></div>
+      <div class="receipt">Volviendo al inicio en <span id="countdown">6</span> s</div>
+    </div></div>
+  </section>
+
+</main>
+
+<button class="back" id="fab" style="left:auto;right:18px">⚙</button>
+
+<div class="modal" id="mConfirm"><div class="glass box">
+  <h4>¿Confirmas tu voto?</h4><p id="confirmText"></p>
+  <div class="row"><button class="btn btn-ghost" data-close>Revisar</button><button class="btn btn-primary" id="btnConfirm">Sí, emitir voto</button></div>
+</div></div>
+<div class="modal" id="mPin"><div class="glass box">
+  <h4>Opciones de la tablet</h4><p>Solo el responsable de la Mesa 4. Escribe el PIN para desactivar esta tablet.</p>
+  <input class="code-input sm" type="password" id="pinIn" maxlength="20" placeholder="••••" style="margin-bottom:12px">
+  <div class="msg err" id="pinMsg" style="margin:0 0 12px"></div>
+  <div class="row"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="btnPin">Desactivar tablet</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>window.MESA = 4;</script>
+<script src="mesa.js"></script>
+</body>
+</html>
