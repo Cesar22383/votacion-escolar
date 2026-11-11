@@ -148,7 +148,9 @@ function parseCSV(txt){
   return rows.filter(r => r.some(x => x.trim()));
 }
 function leerCSV(txt){
-  const rows = parseCSV(txt); if (!rows.length) throw new Error('El archivo está vacío.');
+  let rows = parseCSV(txt); if (!rows.length) throw new Error('El archivo está vacío.');
+  // filas guardadas enteras entre comillas ("61500491,""APELLIDO, Nombre"",Quinto,B"): se vuelven a separar
+  if (rows[0].length > 1) rows = rows.map(r => r.length === 1 && /[,;\t]/.test(r[0]) ? parseCSV(r[0])[0] : r);
   const h = rows[0].map(x => x.trim().toLowerCase());
   const col = re => h.findIndex(x => re.test(x));
   let iN = col(/nombre|apellido|estudiante|alumno/), iG = col(/grado/), iS = col(/secci/), iM = col(/^mesa$/), iD = col(/dni|documento/), iC = col(/^c[oó]digo/);
