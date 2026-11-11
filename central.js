@@ -16,13 +16,13 @@ $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('#loginMsg'); msg.className='msg';
   const code = $('#secret').value.trim(); if (!code){ msg.className='msg err'; msg.textContent='Escribe el código secreto.'; return; }
   const b = $('#btnLogin'); b.disabled = true; b.textContent = 'Verificando…';
-  try { const r = await api('computo', { codigo:code }); S.secret = code; $('#secret').value=''; show('s-central'); fillCfg(); loadPins(); render(r); S.timer = setInterval(refresh, 20000); }
+  try { const r = await api('computo', { codigo:code }); S.secret = code; window.CHAT_AUTH = { tipo:'central', codigo:code }; $('#secret').value=''; show('s-central'); fillCfg(); loadPins(); render(r); S.timer = setInterval(refresh, 20000); }
   catch(err){ msg.className='msg err'; msg.textContent = err.message; }
   finally { b.disabled = false; b.textContent = 'Entrar ›'; }
 });
 async function refresh(){ if (!S.secret) return; try { render(await api('computo', { codigo:S.secret })); } catch(err){ toast(err.message); } }
 $('#btnRefresh').onclick = refresh;
-$('#btnExit').onclick = () => { S.secret = null; S.data = null; clearInterval(S.timer); show('s-login'); };
+$('#btnExit').onclick = () => { S.secret = null; window.CHAT_AUTH = null; S.data = null; clearInterval(S.timer); show('s-login'); };
 $$('.tab').forEach(t => t.onclick = () => {
   $$('.tab').forEach(x => x.classList.toggle('on', x===t)); $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + t.dataset.tab));
   Object.values(CHARTS).forEach(ch => ch.resize());
@@ -107,7 +107,7 @@ function renderPadron(){
   const ya = new Set((S.data.votantes || []).map(v => norm(v.codigo)));
   const list = padSel().slice().sort((a,b) => a.mesa - b.mesa || String(a.nombre).localeCompare(String(b.nombre), 'es'));
   $('#padTable').innerHTML = '<thead><tr><th>Código</th><th>DNI</th><th>Nombre</th><th>Grado y sección</th><th>Mesa</th><th>Estado</th><th></th></tr></thead><tbody>' +
-    (list.length ? list.map(p => { const v = ya.has(norm(p.codigo)); return `<tr><td>${esc(p.codigo)}</td><td>${esc(p.dni||'')}</td><td style="font-family:'Exo 2'">${esc(p.nombre)}</td><td style="font-family:'Exo 2'">${esc([p.grado,p.seccion].filter(Boolean).join(' '))}</td><td>Mesa ${esc(p.mesa)}</td><td><span class="pill ${v?'si':'no'}">${v?'Ya votó':'Pendiente'}</span></td><td>${v ? '' : `<button class="xbtn" data-quitar="${esc(p.codigo)}" title="Quitar del padrón">✕</button>`}</td></tr>`; }).join('')
+    (list.length ? list.map(p => { const v = ya.has(norm(p.codigo)); return `<tr><td>${esc(p.codigo)}</td><td>${esc(p.dni||'')}</td><td style="font-family:'Exo 2'">${esc(p.nombre)}</td><td style="font-family:'Exo 2'">${esc([p.grado,p.seccion].filter(Boolean).join(' '))}</td><td>Mesa ${esc(p.mesa)}</td><td><span class="pill ${v?'si':'no'}">${v?'Ya votó':'Pendiente'}</span></td><td style="white-space:nowrap"><button class="xbtn" style="color:var(--deep)" data-editar="${esc(p.codigo)}" title="Editar DNI, grado y sección">✎ Editar</button>${v ? '' : `<button class="xbtn" data-quitar="${esc(p.codigo)}" title="Quitar del padrón">✕</button>`}</td></tr>`; }).join('')
       : '<tr><td colspan="7" class="empty" style="text-align:center">Aún no hay estudiantes. Agrégalos arriba.</td></tr>') + '</tbody>';
   $('#padInfo').textContent = `${(S.data.padron||[]).length} estudiantes en el padrón`;
 }
@@ -135,7 +135,7 @@ function leerLineas(lines){
 }
 /* lector de CSV con comillas (exportado de Supabase o Excel) */
 function parseCSV(txt){
-  txt = txt.replace(/^﻿/, ''); const sep = (txt.split('\n')[0].match(/;/g)||[]).length > (txt.split('\n')[0].match(/,/g)||[]).length ? ';' : ',';
+  txt = txt.replace(/^﻿/, ''); const h0 = txt.split('\n')[0], cnt = ch => h0.split(ch).length - 1; const sep = cnt('\t') > 0 ? '\t' : cnt(';') > cnt(',') ? ';' : ',';
   const rows = []; let row = [], f = '', q = false;
   for (let i = 0; i < txt.length; i++){
     const c = txt[i];
@@ -162,6 +162,27 @@ function leerCSV(txt){
     return { nombre, dni: v(iD), grado: v(iG), seccion: v(iS), codigo: norm(v(iC)), mesa: Number.isInteger(m) && m >= 1 && m <= CFG.numMesas ? m : null };
   }).filter(x => x.nombre && !/^\d+$/.test(x.nombre));
 }
+/* acepta CSV o Excel (.xlsx); el Excel se convierte a CSV desde la fila de títulos */
+async function leerArchivo(f){
+  const u = new Uint8Array(await f.arrayBuffer());
+  const esExcel = /\.xlsx?$/i.test(f.name) || (u[0] === 0x50 && u[1] === 0x4B);
+  if (!esExcel){
+    const t = new TextDecoder('utf-8').decode(u);
+    if (/\u0000/.test(t) || (t.match(/�/g)||[]).length > 20) throw new Error('Ese archivo no es CSV ni Excel. Elige el archivo del padrón.');
+    return t;
+  }
+  if (!window.XLSX) throw new Error('No se pudo cargar la herramienta de Excel (revisa el internet).');
+  const wb = XLSX.read(u, { type:'array' });
+  const hojas = wb.SheetNames.slice().sort((a,b) => (/todas/i.test(b)?1:0) - (/todas/i.test(a)?1:0));
+  for (const n of hojas){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:false, defval:'' });
+    const hi = rows.findIndex(r => r.some(c => String(c).trim().length < 40 && /^(estudiantes?|alumnos?|nombres?|apellidos?)\b/i.test(String(c).trim())));
+    if (hi < 0) continue;
+    return rows.slice(hi).filter(r => r.some(c => String(c).trim())).map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+  }
+  throw new Error('No encontré la columna de nombres (Estudiante) en el Excel.');
+}
+$('#padCsv').accept = '.csv,.xlsx,.xls,text/csv';
 /* asigna mesa (sorteo / orden / fija) y código único, y guarda */
 async function asignar(leidos){
   if (!S.data) return;
@@ -189,15 +210,48 @@ async function asignar(leidos){
   finally { b.disabled = false; b.textContent = 'Asignar códigos y guardar'; }
 }
 $('#btnPad').onclick = () => {
+  const raw = $('#padText').value;
+  if (/dni|documento/i.test(raw.split(/\r?\n/)[0] || '')){ try { asignar(leerCSV(raw)); } catch(err){ toast(err.message); } return; }
   const lines = $('#padText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (!lines.length){ toast('Escribe al menos un nombre, o usa "Importar archivo CSV".'); return; }
   try { asignar(leerLineas(lines)); } catch(err){ toast(err.message); }
 };
 $('#padCsv').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  try { const lista = leerCSV(await f.text()); toast(`Archivo leído: ${lista.length} estudiantes. Asignando mesas y códigos…`); await asignar(lista); }
+  try { const lista = leerCSV(await leerArchivo(f)); toast(`Archivo leído: ${lista.length} estudiantes. Asignando mesas y códigos…`); await asignar(lista); }
   catch(err){ toast(err.message); }
 };
+$('#padTable').addEventListener('click', e => {
+  const b = e.target.closest('[data-editar]'); if (!b || !S.data) return;
+  const p = (S.data.padron||[]).find(q => q.codigo === b.dataset.editar); if (!p) return;
+  let m = document.getElementById('mEdit');
+  if (!m){
+    m = document.createElement('div'); m.className = 'modal'; m.id = 'mEdit';
+    m.innerHTML = `<div class="glass box"><h4>Editar estudiante</h4><p id="edNom" style="margin-bottom:12px"></p>
+      <label class="field-label" for="edDni">DNI</label><input class="in" id="edDni" inputmode="numeric" maxlength="12">
+      <div class="grid2"><div><label class="field-label" for="edGra">Grado</label><select class="in" id="edGra"><option value="">—</option><option>Primero</option><option>Segundo</option><option>Tercero</option><option>Cuarto</option><option>Quinto</option></select></div>
+      <div><label class="field-label" for="edSec">Sección</label><input class="in" id="edSec" maxlength="5"></div></div>
+      <div class="msg err" id="edMsg" style="margin:0 0 12px"></div>
+      <div class="row"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="edSave">Guardar</button></div></div>`;
+    document.body.appendChild(m);
+  }
+  $('#edNom').textContent = `${p.nombre} · Mesa ${p.mesa} · Código ${p.codigo}`;
+  $('#edDni').value = p.dni || ''; $('#edGra').value = ['Primero','Segundo','Tercero','Cuarto','Quinto'].includes(p.grado) ? p.grado : '';
+  $('#edSec').value = p.seccion || ''; $('#edMsg').textContent = '';
+  $('#edSave').onclick = async () => {
+    const dni = $('#edDni').value.replace(/\D/g,'');
+    if (dni && !/^\d{8}$/.test(dni)){ $('#edMsg').textContent = 'El DNI debe tener 8 números.'; return; }
+    const otro = dni && (S.data.padron||[]).find(q => q.codigo !== p.codigo && String(q.dni).replace(/\D/g,'') === dni);
+    if (otro){ $('#edMsg').textContent = `Ese DNI ya lo tiene ${otro.nombre}.`; return; }
+    const sb = $('#edSave'); sb.disabled = true; sb.textContent = 'Guardando…';
+    try {
+      const filas = (S.data.padron||[]).map(q => q.codigo === p.codigo ? { ...q, dni, grado:$('#edGra').value, seccion:$('#edSec').value.trim().toUpperCase() } : q);
+      await guardarLista(filas, `Datos de ${p.nombre} guardados.`); modal('#mEdit', false);
+    } catch(err){ $('#edMsg').textContent = err.message; }
+    finally { sb.disabled = false; sb.textContent = 'Guardar'; }
+  };
+  modal('#mEdit', true); setTimeout(() => $('#edDni').focus(), 60);
+});
 $('#padTable').addEventListener('click', async e => {
   const x = e.target.closest('[data-quitar]'); if (!x || !S.data) return;
   const code = x.dataset.quitar; const p = (S.data.padron||[]).find(q => q.codigo === code);

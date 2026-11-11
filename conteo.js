@@ -17,13 +17,13 @@ $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('#loginMsg'); msg.className='msg';
   const pin = $('#pin').value.trim(); if (!pin){ msg.className='msg err'; msg.textContent='Escribe el PIN de la mesa.'; return; }
   const b = $('#btnLogin'); b.disabled = true; b.textContent = 'Verificando…';
-  try { const r = await api('resultadosMesa', { mesa:MESA, pin, tipo:'conteo' }); S.pin = pin; $('#pin').value=''; show('s-dash'); render(r); loadPadron(); S.timer = setInterval(refresh, 15000); }
+  try { const r = await api('resultadosMesa', { mesa:MESA, pin, tipo:'conteo' }); S.pin = pin; window.CHAT_AUTH = { tipo:'mesa', mesa:MESA, pin }; $('#pin').value=''; show('s-dash'); render(r); loadPadron(); S.timer = setInterval(refresh, 15000); }
   catch(err){ msg.className='msg err'; msg.textContent = err.message; }
   finally { b.disabled = false; b.textContent = 'Ver conteo ›'; }
 });
-async function refresh(){ if (!S.pin) return; try { const c = await api('config'); CFG = { ...CFG, ...c }; $('#hTitle').textContent = CFG.titulo; $('#hSchool').textContent = CFG.colegio; render(await api('resultadosMesa', { mesa:MESA, pin:S.pin, tipo:'conteo' })); loadPadron(); } catch(err){ if (/PIN de conteo/.test(err.message)){ S.pin = null; clearInterval(S.timer); show('s-login'); $('#loginMsg').className='msg err'; $('#loginMsg').textContent='El PIN de conteo fue cambiado por la central. Ingresa el nuevo PIN.'; } else toast(err.message); } }
+async function refresh(){ if (!S.pin) return; try { const c = await api('config'); CFG = { ...CFG, ...c }; $('#hTitle').textContent = CFG.titulo; $('#hSchool').textContent = CFG.colegio; render(await api('resultadosMesa', { mesa:MESA, pin:S.pin, tipo:'conteo' })); loadPadron(); } catch(err){ if (/PIN de conteo/.test(err.message)){ S.pin = null; window.CHAT_AUTH = null; clearInterval(S.timer); show('s-login'); $('#loginMsg').className='msg err'; $('#loginMsg').textContent='El PIN de conteo fue cambiado por la central. Ingresa el nuevo PIN.'; } else toast(err.message); } }
 $('#btnRefresh').onclick = refresh;
-$('#btnExit').onclick = () => { S.pin = null; clearInterval(S.timer); show('s-login'); };
+$('#btnExit').onclick = () => { S.pin = null; window.CHAT_AUTH = null; clearInterval(S.timer); show('s-login'); };
 
 function render(r){
   const c = r.resultados; S.last = r;

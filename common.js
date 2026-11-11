@@ -149,6 +149,14 @@ async function demoApi(action, p){
       const porMesa = {}, reportes = {}; for (let m=1;m<=5;m++){ porMesa[m] = contar(m); reportes[m] = d.reportes.filter(r=>r.mesa===m).pop() || null; }
       return { ok:true, porMesa, reportes, porHora: porHora(0), votantes:d.votantes, padron:d.padron, hora:new Date().toISOString() };
     }
+    case 'chatMesaLeer': case 'chatMesaEnviar': case 'chatCentralLeer': case 'chatCentralEnviar': case 'chatCentralBorrar': {
+      d.chat = d.chat || []; let m = 0;
+      if (action.startsWith('chatMesa')) m = mesaOk('conteo'); else secretOk();
+      if (action === 'chatCentralBorrar') d.chat = [];
+      if (action.endsWith('Enviar')){ const t = String(p.texto||'').replace(/\s+/g,' ').trim().slice(0,500); if (!t) fail('Escribe un mensaje'); const mm = m || Number(p.mesa); d.chat.push({ id: d.chat.length + 2, hora: isoLocal(new Date()), mesa: mm, de: m ? 'mesa' : 'central', texto: t }); }
+      save(); const desde = Number(p.desde)||0;
+      return { ok:true, ultimo: d.chat.length + 1, mensajes: d.chat.filter(x => x.id > desde && (!m || x.mesa === m || x.mesa === 0)) };
+    }
     case 'guardarPadron': {
       secretOk();
       const s = v => String(v ?? '').trim().slice(0,80);
@@ -247,3 +255,6 @@ async function descargarPadronExcel(porMesa, nombreArchivo){
   try { XLSX.writeFile(wb, nombreArchivo); toast('Excel descargado: ' + nombreArchivo); }
   catch { toast('No se pudo descargar aquí. Abre la página desde tus archivos o desde GitHub en Chrome.'); }
 }
+
+/* chat privado central <-> mesas (solo en las computadoras de conteo y en la central) */
+if (document.getElementById('s-central') || document.getElementById('padSec')){ const s = document.createElement('script'); s.src = 'chat.js'; document.body.appendChild(s); }
